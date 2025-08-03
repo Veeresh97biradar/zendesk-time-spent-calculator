@@ -1,1 +1,4 @@
-main.py
+.env
+env
+required_tickets.json
+__pycache__
