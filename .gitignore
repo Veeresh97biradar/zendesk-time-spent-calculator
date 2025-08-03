@@ -1,4 +1,5 @@
 .env
-env
+__pycache__/
+env/
+venv/
 required_tickets.json
-__pycache__
