@@ -1,5 +1,4 @@
 from zdesk import Zendesk
-import json
 from datetime import datetime
 import math
 from datetime import timedelta
