@@ -7,7 +7,12 @@ on:
 jobs:
   run-script:
     runs-on: ubuntu-latest
-
+    env:
+      ZENDESK_URL: ${{ SECRETS.ZENDESK_URL }}
+      ZENDESK_EMAIL: ${{ SECRETS.ZENDESK_EMAIL }}
+      ZENDESK_PASSWORD: ${{ SECRETS.ZENDESK_PASSWORD }}
+      ZENDESK_TOKEN: ${{ SECRETS.ZENDESK_TOKEN }}
+      
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
