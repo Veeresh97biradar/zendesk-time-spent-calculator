@@ -3,3 +3,6 @@ __pycache__/
 env/
 venv/
 required_tickets.json
+required_tickets.json
+tickets.json
+required_tickets.json
