@@ -173,13 +173,10 @@ def main():
     global author_mapping, custom_status_mapping
     author_mapping = get_author_mapping(get_zendesk_client())
     custom_status_mapping = get_custom_status_mapping()
-    failed_tickets = [60553]
     tickets = fetch_required_tickets(get_zendesk_client())
+    failed_tickets = []
     webhook_url = "https://hooks.slack.com/triggers/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"
     
-    failure_payload = {
-        "failed_tickets": str(failed_tickets)
-    }
 
     for ticket_id in tickets:
         print('_' * 40)
@@ -187,12 +184,12 @@ def main():
         if status != 0:
             failed_tickets.append(ticket_id)
         print('_' * 40)
-
+    
     if failed_tickets:
         print(f"Failed to process the following tickets: {failed_tickets}")
     else:
         print("All tickets processed successfully.")
-    failed_tickets = [60553]
+    
     
     if failed_tickets:
         failure_payload = {"failed_tickets": str(failed_tickets)}
