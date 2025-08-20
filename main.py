@@ -29,7 +29,7 @@ def get_custom_status_mapping():
     """
     Returns the custom status mapping dictionary. There is no function to fetch this from Zdesk library, so used a  static mapping.
     """
-    custom_status_mapping = {8593946: 'New', 8593966: 'Open', 48501370509721: 'Open-Picked', 49279301965209: 'Waiting On TAM', 49281796392985: 'Picked', 49281950587801: 'Priortized', 8593986: 'Pending on customer Information', 49279337489049: 'Waiting On Customer ', 49281922002073: 'Backlog', 8594006: 'On-hold', 49073475708569: 'Triaged', 8594026: 'Solved - RCA shared', 22158910348953: 'Solved - Waiting on customer confirmation', 22158957615129: 'Solved - RCA pending', 22158975648537: 'Solved - RCA Not Available', 47864889132057: 'Solved - Confirmed', 48425190835481: 'Solved - Referred to L2'}
+    custom_status_mapping = {8593946: 'New', 8593966: 'Open', 48501370509721: 'Open-Picked', 49279301965209: 'Waiting On TAM', 49281796392985: 'Picked', 49281950587801: 'Priortized', 8593986: 'Pending on customer Information', 49279337489049: 'Waiting On Customer ', 49281922002073: 'Backlog', 8594006: 'On-hold', 49073475708569: 'Triaged', 49519469213081: 'Prioritized', 49950013777177: 'On-Hold - Pending with TAM', 8594026: 'Solved - RCA shared', 22158910348953: 'Solved - Waiting on customer confirmation', 22158957615129: 'Solved - RCA pending', 22158975648537: 'Solved - RCA Not Available', 47864889132057: 'Solved - Confirmed', 48425190835481: 'Solved - Referred to L2', 49729092333465: 'Invalid Request', 49729132567961: 'Delivered'}
     return custom_status_mapping
 
 def get_zendesk_client():
