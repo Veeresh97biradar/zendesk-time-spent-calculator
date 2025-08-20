@@ -3,6 +3,7 @@ from datetime import datetime
 import math
 from datetime import timedelta
 import os
+import requests
 from dotenv import load_dotenv
 
 def get_author_mapping(zendesk):
@@ -174,7 +175,13 @@ def main():
     custom_status_mapping = get_custom_status_mapping()
     failed_tickets = []
     tickets = fetch_required_tickets(get_zendesk_client())
+    tickets = [60557]
+    webhook_url = "https://hooks.slack.com/triggers/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"
     
+    failure_payload = {
+        "failed_tickets": str(failed_tickets)
+    }
+
     for ticket_id in tickets:
         print('_' * 40)
         status = process_ticket(ticket_id)
@@ -186,6 +193,12 @@ def main():
         print(f"Failed to process the following tickets: {failed_tickets}")
     else:
         print("All tickets processed successfully.")
+    
+    if failed_tickets:
+        failure_payload = {"failed_tickets": str(failed_tickets)}
+        response = requests.post(webhook_url, json=failure_payload)
+        print(response.status_code)
+        print(response.text)
 
 if __name__ == "__main__":
     main()
