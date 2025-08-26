@@ -184,14 +184,14 @@ def process_ticket(ticket_id):
     return status
 
 def main():
+    load_dotenv()
     global author_mapping, custom_status_mapping
     author_mapping = get_author_mapping(get_zendesk_client())
     custom_status_mapping = get_custom_status_mapping()
     tickets = fetch_required_tickets(get_zendesk_client())
     failed_tickets = []
-    webhook_url = "https://hooks.slack.com/triggers/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"
+    webhook_url = os.getenv("SLACK_WEBHOOK_URL")
     
-
     for ticket_id in tickets:
         print('_' * 40)
         status = process_ticket(ticket_id)
