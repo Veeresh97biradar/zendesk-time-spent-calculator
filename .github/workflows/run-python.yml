@@ -14,6 +14,8 @@ jobs:
       ZENDESK_PASSWORD: ${{ secrets.ZENDESK_PASSWORD }}
       ZENDESK_TOKEN: ${{ secrets.ZENDESK_TOKEN }}
       ZENDESK_DOMAIN: ${{ secrets.ZENDESK_DOMAIN }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      
 
     steps:
       - name: Checkout repository
