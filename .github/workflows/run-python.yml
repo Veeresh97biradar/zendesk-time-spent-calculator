@@ -13,6 +13,8 @@ jobs:
       ZENDESK_EMAIL: ${{ secrets.ZENDESK_EMAIL }}
       ZENDESK_PASSWORD: ${{ secrets.ZENDESK_PASSWORD }}
       ZENDESK_TOKEN: ${{ secrets.ZENDESK_TOKEN }}
+      ZENDESK_DOMAIN: ${{ secrets.ZENDESK_DOMAIN }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
