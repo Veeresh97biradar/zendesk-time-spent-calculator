@@ -5,6 +5,8 @@ from datetime import timedelta
 import os
 import requests
 from dotenv import load_dotenv
+import requests
+from requests.auth import HTTPBasicAuth
 
 def get_author_mapping(zendesk):
     """
@@ -30,7 +32,16 @@ def get_custom_status_mapping():
     """
     Returns the custom status mapping dictionary. There is no function to fetch this from Zdesk library, so used a  static mapping.
     """
-    custom_status_mapping = {8593946: 'New', 8593966: 'Open', 48501370509721: 'Open-Picked', 49279301965209: 'Waiting On TAM', 49281796392985: 'Picked', 49281950587801: 'Priortized', 8593986: 'Pending on customer Information', 49279337489049: 'Waiting On Customer ', 49281922002073: 'Backlog', 8594006: 'On-hold', 49073475708569: 'Triaged', 49519469213081: 'Prioritized', 49950013777177: 'On-Hold - Pending with TAM', 8594026: 'Solved - RCA shared', 22158910348953: 'Solved - Waiting on customer confirmation', 22158957615129: 'Solved - RCA pending', 22158975648537: 'Solved - RCA Not Available', 47864889132057: 'Solved - Confirmed', 48425190835481: 'Solved - Referred to L2', 49729092333465: 'Invalid Request', 49729132567961: 'Delivered'}
+    load_dotenv()
+    url = f"https://{os.getenv('ZENDESK_DOMAIN')}.zendesk.com/api/v2/custom_statuses.json"
+    response = requests.get(url, auth=HTTPBasicAuth(os.getenv('ZENDESK_EMAIL'), os.getenv('ZENDESK_PASSWORD')))
+
+    if response.status_code == 200:
+        data = response.json()
+    
+    custom_status = data['custom_statuses']
+    custom_status_mapping = {status['id']: status['agent_label'] for status in custom_status}
+    #custom_status_mapping = {8593946: 'New', 8593966: 'Open', 48501370509721: 'Open-Picked', 49279301965209: 'Waiting On TAM', 49281796392985: 'Picked', 49281950587801: 'Priortized', 8593986: 'Pending on customer Information', 49279337489049: 'Waiting On Customer ', 49281922002073: 'Backlog', 8594006: 'On-hold', 49073475708569: 'Triaged', 49519469213081: 'Prioritized', 49950013777177: 'On-Hold - Pending with TAM', 8594026: 'Solved - RCA shared', 22158910348953: 'Solved - Waiting on customer confirmation', 22158957615129: 'Solved - RCA pending', 22158975648537: 'Solved - RCA Not Available', 47864889132057: 'Solved - Confirmed', 48425190835481: 'Solved - Referred to L2', 49729092333465: 'Invalid Request', 49729132567961: 'Delivered'}
     return custom_status_mapping
 
 def get_zendesk_client():
@@ -108,6 +119,9 @@ def generate_field_data(agent_times, assignee_name):
         "total_secondary_working": secondary_working_hours,
         "assignee_working_hours": assignee_working_hours
     }
+
+    print(data)
+    print(agent_times)
     return data
 
 def update_ticket(zendesk, ticket_id, field_data):
@@ -174,6 +188,7 @@ def main():
     author_mapping = get_author_mapping(get_zendesk_client())
     custom_status_mapping = get_custom_status_mapping()
     tickets = fetch_required_tickets(get_zendesk_client())
+    tickets = [59622]
     failed_tickets = []
     webhook_url = "https://hooks.slack.com/triggers/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"
     
