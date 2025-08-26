@@ -189,6 +189,7 @@ def main():
     custom_status_mapping = get_custom_status_mapping()
     tickets = fetch_required_tickets(get_zendesk_client())
     failed_tickets = []
+
     webhook_url = "https://hooks.slack.com/triggers/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"
     
 
