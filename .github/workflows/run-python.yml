@@ -14,7 +14,9 @@ jobs:
       ZENDESK_PASSWORD: ${{ secrets.ZENDESK_PASSWORD }}
       ZENDESK_TOKEN: ${{ secrets.ZENDESK_TOKEN }}
       ZENDESK_DOMAIN: ${{ secrets.ZENDESK_DOMAIN }}
-      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      SLACK_WEBHOOK_URL_EMPTY: ${{ secrets.SLACK_WEBHOOK_URL_EMPTY }}
+      SLACK_WEBHOOK_URL_FAILED: ${{ secrets.SLACK_WEBHOOK_URL_FAILED }}
+      
       
 
     steps:
