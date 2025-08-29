@@ -7,6 +7,7 @@ import requests
 from dotenv import load_dotenv
 import requests
 from requests.auth import HTTPBasicAuth
+import time
 
 def get_author_mapping(zendesk):
     """
@@ -25,7 +26,6 @@ def get_author_mapping(zendesk):
     users = response.get('users', [])
     for user in users:
         author_mapping[user['id']] = user['name']
-
     return author_mapping 
 
 def get_custom_status_mapping():
@@ -54,8 +54,7 @@ def get_zendesk_client():
         zdesk_url=os.getenv('ZENDESK_URL'),
         zdesk_email=os.getenv('ZENDESK_EMAIL'),
         zdesk_password=os.getenv('ZENDESK_PASSWORD'),
-        zdesk_token=os.getenv('ZENDESK_TOKEN', 'False') == 'True'
-    )
+        zdesk_token=os.getenv('ZENDESK_TOKEN', 'False') == 'True')
 
 def fetch_ticket_audits(zendesk, ticket_id):
     response = zendesk.ticket_audits(ticket_id=ticket_id, get_all_pages=True)
@@ -117,8 +116,9 @@ def generate_field_data(agent_times, assignee_name):
         "assignee_name": assignee_name,
         "secondary_log": secondary_working_hours_log,
         "total_secondary_working": secondary_working_hours,
-        "assignee_working_hours": assignee_working_hours
-    }
+        "assignee_working_hours": assignee_working_hours}
+
+
 
     print(data)
     print(agent_times)
@@ -162,10 +162,36 @@ def fetch_required_tickets(zendesk):
     three_days_ago = (datetime.now() - timedelta(days=3)).strftime('%Y-%m-%dT%H:%M:%SZ')
     print("Three days ago time: {}".format(three_days_ago))
     print('_' * 40)
-    query = 'group_id:6338786491161 type:ticket status:solved updated>={}'.format(three_days_ago)
-    response = zendesk.search(get_all_pages=True, query=query)
-    data = response.get('results', [])
-    required_tickets = [ticket['id'] for ticket in data]
+
+    base_filters = [
+    "type:ticket",
+    "status:solved",
+    "group_id:6338786491161",
+    f"updated>={three_days_ago}"]
+
+    custom_field_values = {
+    "issue_": ["50124257287449", "47413823762713"],
+    "query_": ["47496875391641", "50107781782681"]}
+
+    tickets = []
+
+    for cf_value, form_ids in custom_field_values.items():
+        for form_id in form_ids:
+            query = " ".join(
+                base_filters + [
+                f"custom_field_6343868668825:{cf_value}",
+                f"ticket_form_id:{form_id}"
+            ]
+        )
+            print("executing the query: ")
+            print(query)
+            response = zendesk.search(get_all_pages=True, query=query)
+            data = response.get('results', [])
+            print("number of results for this batch is: {data}".format(data=len(data)))
+            print('*' * 40)
+            tickets.extend(data)   
+
+    required_tickets = [ticket['id'] for ticket in tickets]
 
     print(f"Tickets updated in the last 3 days: {len(required_tickets)}")
     
@@ -179,37 +205,110 @@ def process_ticket(ticket_id):
     agent_times = calculate_agent_times(audits_filtered)
     assignee_id = get_ticket_details(get_zendesk_client(), ticket_id)['assignee_id']
     assignee_name = author_mapping.get(assignee_id, "Unknown Assignee")
+    working_hours_is_zero = False
     field_data = generate_field_data(agent_times, assignee_name)
+    if field_data['assignee_working_hours'] == 0 and field_data['total_secondary_working'] == 0:
+        print(f"Both assignee and secondary working hours are zero for ticket ID: {ticket_id}")
+        working_hours_is_zero = True
+
     status = update_ticket(get_zendesk_client(), ticket_id, field_data)
-    return status
+
+    return status, [working_hours_is_zero, assignee_name]
 
 def main():
-    load_dotenv()
     global author_mapping, custom_status_mapping
-    author_mapping = get_author_mapping(get_zendesk_client())
+    load_dotenv()
+    zendesk_client = get_zendesk_client()
+    failed_tickets, empty_tickets = [], []
+
+    author_mapping = get_author_mapping(zendesk_client)
     custom_status_mapping = get_custom_status_mapping()
-    tickets = fetch_required_tickets(get_zendesk_client())
-    failed_tickets = []
-    webhook_url = os.getenv("SLACK_WEBHOOK_URL")
+    tickets = fetch_required_tickets(zendesk_client)
+
+
+    webhook_url_empty_tickets = os.getenv("SLACK_WEBHOOK_URL_EMPTY")
+    webhook_url_failed_tickets = os.getenv("SLACK_WEBHOOK_URL_FAILED")
+
+    slack_mapping = {
+    "Dimple MK": "U038P9A4CNS",
+    "Monica Patel": "U02LTRN6BK9",
+    "Muskan Kesharwani": "U02M82VVCBU",
+    "Sudhanshu Sharan": "U02C3UAGKSL",
+    "Veeresh Biradar": "U030G8ZE4KE",
+    "Madanlal Bidiyasar": "U04Q8DXBS3S",
+    "Anmol Baunthiyal": "U04PKQEEASZ",
+    "Harmanjot Kaur": "U071MGJ56PL",
+    "khushi.s@hevodata.com": "U073HQ3HM3L",
+    "sthitapragyan.rout@hevodata.com": "U073HLQCWUT",
+    "Vijaysree Kalvakolanu": "U05H38YSPJA",
+    "Parthiv Patel": "U04Q2NV4QU9",
+    "Jashmitha CG": "U05HSJWAYSC",
+    "Bhuvana.K": "U05HSSD0UAC",
+    "siddhartha.chauhan@hevodata.com": "U04PQ432YSE",
+    "Mrinmayee Deshpande": "U090Y8SG1DJ",
+    "Nimisha James": "U091LJZ776U",
+    "Amruta Patil": "U090QAZSGVC",
+    "Kanad Kolhe": "U091LJQEWGG",
+    "Jatin Patil": "U0919MULBCH",
+    "Atharva Ghanekar": "U091LKG8C0Y",
+    "Harita Joshi": "U091LJR72Q0",
+    "Rohit Guntuku": "U02BSMUAKAM",
+    "Sarthak Bhardwaj": "U031DU0MR47",
+    "Satyam Agrawal": "U031WTFFKL4",
+    "Vishnu Bhargav": "U02BL86G5SQ",
+    "Subham Bansal": "U02BB29SF6Z",
+    "Nishant Tandon": "U031V80LK3M"}
     
     for ticket_id in tickets:
         print('_' * 40)
-        status = process_ticket(ticket_id)
+        status, working_hours_is_zero = process_ticket(ticket_id)
+
         if status != 0:
-            failed_tickets.append(ticket_id)
+            failed_tickets.append([ticket_id, working_hours_is_zero[1]])
+        
+        if working_hours_is_zero[0]:
+            empty_tickets.append([ticket_id, working_hours_is_zero[1]])
+
         print('_' * 40)
     
-    if failed_tickets:
-        print(f"Failed to process the following tickets: {failed_tickets}")
-    else:
-        print("All tickets processed successfully.")
+    time.sleep(5)
+
+    if empty_tickets:
+        grouped = {}
+        headers = {"Content-Type": "application/json"}
+        for ticket_id, name in empty_tickets:
+            slack_id = slack_mapping.get(name)
+            if slack_id: 
+                grouped.setdefault(slack_id, []).append(ticket_id)
+
+
+        for slack_id, tickets in grouped.items():
+            tickets_str = ", ".join(map(str, tickets))  
+            payload = {
+                "slack_member_id": slack_id,
+                "empty_tickets": tickets_str
+            }
+            response = requests.post(webhook_url_empty_tickets, json=payload, headers=headers)
+            print(f"Sent payload: {payload} | with response: {response.status_code}")
+            print("_"*40)
     
-    
     if failed_tickets:
-        failure_payload = {"failed_tickets": str(failed_tickets)}
-        response = requests.post(webhook_url, json=failure_payload)
-        print(response.status_code)
-        print(response.text)
+        grouped = {}
+        headers = {"Content-Type": "application/json"}
+        for ticket_id, name in failed_tickets:
+            slack_id = slack_mapping.get(name)
+            if slack_id: 
+                grouped.setdefault(slack_id, []).append(ticket_id)
+
+
+        for slack_id, tickets in grouped.items():
+            tickets_str = ", ".join(map(str, tickets))  
+            payload = {
+                "slack_member_id": slack_id,
+                "failed_tickets": tickets_str
+            }
+            response = requests.post(webhook_url_failed_tickets, json=payload, headers=headers)
+        print(f"Sent payload: {payload} | with response: {response.status_code}")
 
 if __name__ == "__main__":
     main()
