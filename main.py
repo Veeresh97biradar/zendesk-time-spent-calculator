@@ -179,7 +179,6 @@ def fetch_required_tickets(zendesk):
     }
 
     mapping = {"47496875391641": "query_old_form", "50107781782681": "query_new_form", "50124257287449": "issue_new_form", "47413823762713": "issue_old_form", "44897999201817": "l1 support form", "6338786491161": "general escalation"}
-    tickets = [55019]
 
     for group_id in group_ids:
         for cf_value, form_ids in custom_field_values.items():
@@ -205,7 +204,7 @@ def fetch_required_tickets(zendesk):
                 print('*' * 40)
                 tickets.extend(data)
 
-    required_tickets = list({ticket['id'] for ticket in tickets})  # dedupe IDs
+    required_tickets = list({ticket['id'] for ticket in tickets})  
 
     print(f"Tickets updated in the last 30 days: {len(required_tickets)}")
     print("List of ticket IDs:")
