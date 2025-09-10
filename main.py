@@ -151,6 +151,7 @@ def update_ticket(zendesk, ticket_id, field_data):
     else:
         print(f"Failed to update ticket {ticket_id}. Response: {response}")
         status = 1
+
     return status
 
 def fetch_required_tickets(zendesk):
@@ -163,38 +164,52 @@ def fetch_required_tickets(zendesk):
     print("Three days ago time: {}".format(three_days_ago))
     print('_' * 40)
 
-    base_filters = [
-    "type:ticket",
-    "status:solved",
-    "group_id:6338786491161",
-    f"updated>={three_days_ago}"]
+    group_ids = ["44897999201817", "6338786491161"]
+
+    base_filters_common = [
+        "type:ticket",
+        "status:solved",
+        "custom_field_50256840004505:false",
+        f"updated>={three_days_ago}"
+    ]
 
     custom_field_values = {
-    "issue_": ["50124257287449", "47413823762713"],
-    "query_": ["47496875391641", "50107781782681"]}
+        "issue_": ["50124257287449", "47413823762713"],
+        "query_": ["47496875391641", "50107781782681"]
+    }
 
-    tickets = []
+    mapping = {"47496875391641": "query_old_form", "50107781782681": "query_new_form", "50124257287449": "issue_new_form", "47413823762713": "issue_old_form", "44897999201817": "l1 support form", "6338786491161": "general escalation"}
+    tickets = [55019]
 
-    for cf_value, form_ids in custom_field_values.items():
-        for form_id in form_ids:
-            query = " ".join(
-                base_filters + [
-                f"custom_field_6343868668825:{cf_value}",
-                f"ticket_form_id:{form_id}"
-            ]
-        )
-            print("executing the query: ")
-            print(query)
-            response = zendesk.search(get_all_pages=True, query=query)
-            data = response.get('results', [])
-            print("number of results for this batch is: {data}".format(data=len(data)))
-            print('*' * 40)
-            tickets.extend(data)   
+    for group_id in group_ids:
+        for cf_value, form_ids in custom_field_values.items():
+            for form_id in form_ids:
+                query = " ".join(
+                    base_filters_common + [
+                        f"group_id:{group_id}",
+                        f"custom_field_6343868668825:{cf_value}",
+                        f"ticket_form_id:{form_id}"
+                    ]
+                )
+                print("executing the query: ")
+                print(query)
+                filterss = [three_days_ago]
+                response = zendesk.search(get_all_pages=True, query=query)
+                data = response.get('results', [])
+                for event in query.split():
+                    for k in event.split(':'):
+                        if k in mapping:
+                            filterss.append(mapping[k])
+                print("Filters applied for this batch are: {data}".format(data=filterss))
+                print("number of results for this batch is: {data}".format(data=len(data)))
+                print('*' * 40)
+                tickets.extend(data)
 
-    required_tickets = [ticket['id'] for ticket in tickets]
+    required_tickets = list({ticket['id'] for ticket in tickets})  # dedupe IDs
 
-    print(f"Tickets updated in the last 3 days: {len(required_tickets)}")
-    
+    print(f"Tickets updated in the last 30 days: {len(required_tickets)}")
+    print("List of ticket IDs:")
+    print(required_tickets)
     return required_tickets
 
 def process_ticket(ticket_id):
@@ -222,10 +237,9 @@ def main():
     failed_tickets, empty_tickets = [], []
 
     author_mapping = get_author_mapping(zendesk_client)
+ 
     custom_status_mapping = get_custom_status_mapping()
     tickets = fetch_required_tickets(zendesk_client)
-
-
     webhook_url_empty_tickets = os.getenv("SLACK_WEBHOOK_URL_EMPTY")
     webhook_url_failed_tickets = os.getenv("SLACK_WEBHOOK_URL_FAILED")
 
@@ -257,8 +271,10 @@ def main():
     "Satyam Agrawal": "U031WTFFKL4",
     "Vishnu Bhargav": "U02BL86G5SQ",
     "Subham Bansal": "U02BB29SF6Z",
-    "Nishant Tandon": "U031V80LK3M"}
-    
+    "Nishant Tandon": "U031V80LK3M",
+    "Kaustubh Vatsa": "U073WE8P9CZ",
+    "bhuvana.k@hevodata.com": "U05HSSD0UAC"}
+    tickets = [60986]
     for ticket_id in tickets:
         print('_' * 40)
         status, working_hours_is_zero = process_ticket(ticket_id)
@@ -272,25 +288,30 @@ def main():
         print('_' * 40)
     
     time.sleep(5)
-
+    print(failed_tickets)
+    print(empty_tickets)
     if empty_tickets:
-        grouped = {}
         headers = {"Content-Type": "application/json"}
+        iter = 0
         for ticket_id, name in empty_tickets:
             slack_id = slack_mapping.get(name)
-            if slack_id: 
-                grouped.setdefault(slack_id, []).append(ticket_id)
-
-
-        for slack_id, tickets in grouped.items():
-            tickets_str = ", ".join(map(str, tickets))  
-            payload = {
-                "slack_member_id": slack_id,
-                "empty_tickets": tickets_str
-            }
+            if slack_id:  # only if mapping exists
+                payload = {
+                    "slack_member_id": slack_id,
+                    "empty_tickets": str(ticket_id)  # single ticket as string
+                }
+            
+            else:
+                payload = {
+                    "slack_member_id": "unknown",
+                    "empty_tickets": str(ticket_id)
+                }
+            iter += 1
+            if iter%3 == 0:
+                time.sleep(5)
             response = requests.post(webhook_url_empty_tickets, json=payload, headers=headers)
             print(f"Sent payload: {payload} | with response: {response.status_code}")
-            print("_"*40)
+            print("_" * 40)
     
     if failed_tickets:
         grouped = {}
@@ -300,15 +321,18 @@ def main():
             if slack_id: 
                 grouped.setdefault(slack_id, []).append(ticket_id)
 
-
+        iter = 0
         for slack_id, tickets in grouped.items():
             tickets_str = ", ".join(map(str, tickets))  
             payload = {
                 "slack_member_id": slack_id,
                 "failed_tickets": tickets_str
             }
+            iter += 1
+            if iter%3 == 0:
+                time.sleep(5)
             response = requests.post(webhook_url_failed_tickets, json=payload, headers=headers)
-        print(f"Sent payload: {payload} | with response: {response.status_code}")
+        print(f"Sent payload: {payload} | with response: {response.status_code} and response message: {response.text}")
 
 if __name__ == "__main__":
     main()
