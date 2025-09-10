@@ -295,10 +295,10 @@ def main():
         iter = 0
         for ticket_id, name in empty_tickets:
             slack_id = slack_mapping.get(name)
-            if slack_id:  # only if mapping exists
+            if slack_id:  
                 payload = {
                     "slack_member_id": slack_id,
-                    "empty_tickets": str(ticket_id)  # single ticket as string
+                    "empty_tickets": str(ticket_id)  
                 }
             
             else:
