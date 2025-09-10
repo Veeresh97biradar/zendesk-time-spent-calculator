@@ -274,7 +274,6 @@ def main():
     "Nishant Tandon": "U031V80LK3M",
     "Kaustubh Vatsa": "U073WE8P9CZ",
     "bhuvana.k@hevodata.com": "U05HSSD0UAC"}
-    tickets = [60986]
     for ticket_id in tickets:
         print('_' * 40)
         status, working_hours_is_zero = process_ticket(ticket_id)
