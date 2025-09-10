@@ -165,7 +165,7 @@ def fetch_required_tickets(zendesk):
     print('_' * 40)
 
     group_ids = ["44897999201817", "6338786491161"]
-
+    tickets = []
     base_filters_common = [
         "type:ticket",
         "status:solved",
