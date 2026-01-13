@@ -34,7 +34,13 @@ def get_custom_status_mapping():
     """
     load_dotenv()
     url = f"https://{os.getenv('ZENDESK_DOMAIN')}.zendesk.com/api/v2/custom_statuses.json"
-    response = requests.get(url, auth=HTTPBasicAuth(os.getenv('ZENDESK_EMAIL'), os.getenv('ZENDESK_PASSWORD')))
+    response = requests.get(
+    url,
+    auth=HTTPBasicAuth(
+        f"{os.getenv('ZENDESK_EMAIL')}/token",
+        os.getenv('ZENDESK_TOKEN')   # reuse same token
+       )
+    )
 
     if response.status_code == 200:
         data = response.json()
@@ -53,8 +59,9 @@ def get_zendesk_client():
     return Zendesk(
         zdesk_url=os.getenv('ZENDESK_URL'),
         zdesk_email=os.getenv('ZENDESK_EMAIL'),
-        zdesk_password=os.getenv('ZENDESK_PASSWORD'),
-        zdesk_token=os.getenv('ZENDESK_TOKEN', 'False') == 'True')
+        zdesk_password=os.getenv('ZENDESK_TOKEN'),  # API token reused
+        zdesk_token=True                            # tells SDK to use token auth
+    )
 
 def fetch_ticket_audits(zendesk, ticket_id):
     response = zendesk.ticket_audits(ticket_id=ticket_id, get_all_pages=True)
